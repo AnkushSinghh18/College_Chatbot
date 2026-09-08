@@ -1,27 +1,17 @@
-"""
-Django settings for the TCET Chatbot project.
-
-This is a SMALL COLLEGE PROJECT, so the settings are kept as simple
-as possible (no environment variable managers, no cloud config, etc).
-"""
-
+cat > tcet_chatbot/settings.py << 'EOF'
+import os
 from pathlib import Path
 
-# BASE_DIR points to the folder that contains manage.py
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# -----------------------------------------------------------------
-# SECURITY (kept simple on purpose - this is NOT a production app)
-# -----------------------------------------------------------------
-SECRET_KEY = 'django-insecure-tcet-chatbot-college-project-key'
+SECRET_KEY = os.environ.get(
+    'SECRET_KEY', 'django-insecure-tcet-chatbot-college-project-key'
+)
 
-DEBUG = True  # Shows helpful error pages while developing
+DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = ['*']  # Fine for a local college project/demo
+ALLOWED_HOSTS = ['*']
 
-# -----------------------------------------------------------------
-# APPLICATIONS
-# -----------------------------------------------------------------
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -29,12 +19,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
-    'chatbot',  # our app
+    'chatbot',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -48,8 +38,6 @@ ROOT_URLCONF = 'tcet_chatbot.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        # Django will look inside chatbot/templates/ automatically
-        # because APP_DIRS is True. DIRS is left empty on purpose.
         'DIRS': [],
         'APP_DIRS': True,
         'OPTIONS': {
@@ -65,9 +53,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'tcet_chatbot.wsgi.application'
 
-# -----------------------------------------------------------------
-# DATABASE - SQLite (a single file, no server setup needed)
-# -----------------------------------------------------------------
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -75,9 +60,6 @@ DATABASES = {
     }
 }
 
-# -----------------------------------------------------------------
-# PASSWORD VALIDATION (Django defaults - only affects admin login)
-# -----------------------------------------------------------------
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
@@ -85,18 +67,19 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-# -----------------------------------------------------------------
-# INTERNATIONALIZATION
-# -----------------------------------------------------------------
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'Asia/Kolkata'
 USE_I18N = True
 USE_TZ = True
 
-# -----------------------------------------------------------------
-# STATIC FILES (CSS, JS)
-# -----------------------------------------------------------------
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STORAGES = {
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+EOF
