@@ -1,0 +1,168 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TCET Enquiry Chatbot</title>
+    <link rel="stylesheet" href="{% static 'style.css' %}">
+</head>
+
+<body>
+
+    <div class="app">
+
+        <header class="app-header">
+            <img src="{% static 'logo.png' %}" alt="College Logo" class="logo-img" onerror="this.style.display='none'">
+            <div class="header-text">
+                <h1>TCET Enquiry Chatbot</h1>
+                <p>Thakur College of Engineering and Technology, Mumbai</p>
+            </div>
+            <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙</button>
+        </header>
+
+        <main class="chat-container">
+
+            <div id="chat-window" class="chat-window">
+                <div class="message bot-message">
+                    Hi! I'm the TCET Enquiry Bot. Ask me about courses, branches,
+                    fees, admissions, eligibility, facilities or contact details.
+                </div>
+            </div>
+
+            <div class="quick-buttons">
+                <button class="quick-btn" data-msg="What courses does TCET offer?">Courses</button>
+                <button class="quick-btn" data-msg="What is the B.Tech fee?">Fees</button>
+                <button class="quick-btn" data-msg="How can I get admission?">Admissions</button>
+                <button class="quick-btn" data-msg="Does TCET have a library?">Facilities</button>
+                <button class="quick-btn" data-msg="What is the college contact number?">Contact</button>
+            </div>
+
+            <form id="chat-form" class="chat-input-row">
+                {% csrf_token %}
+                <input type="text" id="user-input" placeholder="Type your question..." autocomplete="off" required>
+                <button type="submit">Send</button>
+            </form>
+
+        </main>
+
+        <footer class="app-footer">
+            College Enquiry Chatbot &mdash; College Project
+        </footer>
+
+    </div>
+
+    <script>
+        const chatWindow = document.getElementById('chat-window');
+        const chatForm = document.getElementById('chat-form');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = chatForm.querySelector('button[type="submit"]');
+        let isSending = false;
+
+        function applyTheme(isDark) {
+            document.body.classList.toggle('dark-mode', isDark);
+            document.getElementById('theme-toggle').textContent = isDark ? '☀️' : '🌙';
+        }
+
+        function toggleTheme() {
+            const isDark = !document.body.classList.contains('dark-mode');
+            applyTheme(isDark);
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        }
+
+        applyTheme(localStorage.getItem('theme') === 'dark');
+
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+        }
+
+        function currentTime() {
+            return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function addMessage(text, sender) {
+            const div = document.createElement('div');
+            div.className = 'message ' + (sender === 'user' ? 'user-message' : 'bot-message');
+
+            const textSpan = document.createElement('div');
+            textSpan.textContent = text;
+            div.appendChild(textSpan);
+
+            const timeSpan = document.createElement('div');
+            timeSpan.className = 'msg-time';
+            timeSpan.textContent = currentTime();
+            div.appendChild(timeSpan);
+
+            chatWindow.appendChild(div);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        function showTyping() {
+            const div = document.createElement('div');
+            div.className = 'message bot-message typing-indicator';
+            div.id = 'typing-indicator';
+            div.innerHTML = '<span></span><span></span><span></span>';
+            chatWindow.appendChild(div);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        function hideTyping() {
+            const el = document.getElementById('typing-indicator');
+            if (el) el.remove();
+        }
+
+        function setSending(state) {
+            isSending = state;
+            userInput.disabled = state;
+            sendBtn.disabled = state;
+            document.querySelectorAll('.quick-btn').forEach(btn => btn.disabled = state);
+        }
+
+        async function sendMessage(message) {
+            if (isSending) return;
+            setSending(true);
+
+            addMessage(message, 'user');
+            userInput.value = '';
+            showTyping();
+
+            try {
+                const response = await fetch("{% url 'get_response' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken'),
+                    },
+                    body: JSON.stringify({ message: message }),
+                });
+                const data = await response.json();
+                hideTyping();
+                addMessage(data.response, 'bot');
+            } catch (err) {
+                hideTyping();
+                addMessage("Sorry, something went wrong. Please try again.", 'bot');
+            } finally {
+                setSending(false);
+                userInput.focus();
+            }
+        }
+
+        chatForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const message = userInput.value.trim();
+            if (message) sendMessage(message);
+        });
+
+        document.querySelectorAll('.quick-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                sendMessage(btn.dataset.msg);
+            });
+        });
+    </script>
+
+</body>
+
+</html>
