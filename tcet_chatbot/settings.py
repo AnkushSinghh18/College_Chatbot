@@ -1,4 +1,3 @@
-cat > tcet_chatbot/settings.py << 'EOF'
 import os
 from pathlib import Path
 
@@ -82,4 +81,3 @@ STORAGES = {
 }
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-EOF
